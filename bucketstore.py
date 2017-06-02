@@ -73,7 +73,7 @@ class S3Bucket(object):
         k = self.key(key)
         return k.get()
 
-    def set(self, key, value, metadata=dict(), content_type=None):
+    def set(self, key, value, metadata=dict(), content_type=''):
         k = self.key(key)
         return k.set(value, metadata, content_type)
 
@@ -119,9 +119,13 @@ class S3Key(object):
         """Gets the value of the key."""
         return self._boto_object.get()['Body'].read()
 
-    def set(self, value, metadata=dict(), content_type=None):
+    def set(self, value, metadata=dict(), content_type=''):
         """Sets the key to the given value."""
-        return self._boto_object.put(Body=value, Metadata=metadata, ContentType=content_type)
+        return self._boto_object.put(
+            Body=value,
+            Metadata=metadata,
+            ContentType=content_type
+        )
 
     def rename(self, new_name):
         """Renames the key to a given new name."""
