@@ -1,6 +1,8 @@
+import json
 import os
 
 import bucketstore
+import pickle
 import pytest
 
 from moto import mock_s3
@@ -134,3 +136,38 @@ def test_bucket_keys_can_be_iterated_upon(bucket):
 
     for idx, key in enumerate(keys):
         assert key.name == str(idx)
+
+
+def test_key_can_be_written_to_like_file(key):
+    lines = (
+        'Line 1',
+        'Line 2',
+        'Line 3',
+    )
+
+    with key as file_handler:
+        for line in lines:
+            file_handler.write(line.encode('utf-8'))
+
+    assert key.get()
+    assert key.get() == bytearray(''.join(lines).encode('utf-8'))
+
+
+def test_key_can_be_json_dumped_to(key):
+    data = {'hello': 'world'}
+
+    with key as file_handler:
+        json.dump(data, file_handler)
+
+    assert key.get()
+    assert json.load(key) == data
+
+
+def test_key_can_be_written_to_like_pickle(key):
+    data = {'hello': 'world'}
+
+    with key as file_handler:
+        pickle.dump(data, file_handler, protocol=pickle.HIGHEST_PROTOCOL)
+
+    assert key.get()
+    assert pickle.load(key) == data

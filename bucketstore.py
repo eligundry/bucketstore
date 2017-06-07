@@ -1,5 +1,7 @@
 import os
 
+from io import BytesIO
+
 import boto3
 
 
@@ -104,12 +106,23 @@ class S3Key(object):
         super(S3Key, self).__init__()
         self.bucket = bucket
         self.name = name
+        self.stream = None
 
     def __repr__(self):
         return '<S3Key name={0!r} bucket={1!r}>'.format(
             self.name,
             self.bucket.name
         )
+
+    def __enter__(self):
+        self.stream = BytesIO()
+        return self.stream
+
+    def __exit__(self, type, value, traceback):
+        self.stream.seek(0)
+        self.set(self.stream)
+        self.stream.close()
+        self.stream = None
 
     @property
     def _boto_object(self):
@@ -118,6 +131,15 @@ class S3Key(object):
     def get(self):
         """Gets the value of the key."""
         return self._boto_object.get()['Body'].read()
+
+    def read(self):
+        return self.get()
+
+    def readline(self):
+        lines = self.get().split('\n')
+
+        for line in lines:
+            yield line
 
     def set(self, value, metadata=dict(), content_type=''):
         """Sets the key to the given value."""
