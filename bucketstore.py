@@ -1,6 +1,6 @@
+import codecs
+import io
 import os
-
-from io import BytesIO
 
 import boto3
 
@@ -106,7 +106,7 @@ class S3Key(object):
         super(S3Key, self).__init__()
         self.bucket = bucket
         self.name = name
-        self.stream = None
+        self._buffer = None
 
     def __repr__(self):
         return '<S3Key name={0!r} bucket={1!r}>'.format(
@@ -115,14 +115,17 @@ class S3Key(object):
         )
 
     def __enter__(self):
-        self.stream = BytesIO()
-        return self.stream
+        self._buffer = io.BytesIO()
+        return self._buffer
 
-    def __exit__(self, type, value, traceback):
-        self.stream.seek(0)
-        self.set(self.stream)
-        self.stream.close()
-        self.stream = None
+    def __exit__(self, exc_type, exc_value, traceback):
+        # If an exception occurred, bail and don't try to upload.
+        if not exc_type:
+            self._buffer.seek(0)
+            self.set(self._buffer)
+
+        self._buffer.close()
+        self._buffer = None
 
     @property
     def _boto_object(self):
@@ -132,14 +135,37 @@ class S3Key(object):
         """Gets the value of the key."""
         return self._boto_object.get()['Body'].read()
 
-    def read(self):
-        return self.get()
+    def read(self, size=None):
+        """Reads the value of the key."""
+        if not self._buffer:
+            self._buffer = io.BytesIO()
+            self._boto_object.download_fileobj(self._buffer)
+            self.seek(0)
+
+        return self._buffer.read(size)
 
     def readline(self):
-        lines = self.get().split('\n')
+        """Reads a line from the key."""
+        if not self._buffer:
+            self._buffer = io.BytesIO()
+            self._boto_object.download_fileobj(self._buffer)
+            self.seek(0)
 
-        for line in lines:
-            yield line
+        return self._buffer.readline()
+
+    def seek(self, pos, whence=0):
+        if not self._buffer:
+            self._buffer = io.BytesIO()
+            self._boto_object.download_fileobj(self._buffer)
+
+        return self._buffer.seek(pos, whence)
+
+    def tell(self):
+        if not self._buffer:
+            self._buffer = io.BytesIO()
+            self._boto_object.download_fileobj(self._buffer)
+
+        return self._buffer.tell()
 
     def set(self, value, metadata=dict(), content_type=''):
         """Sets the key to the given value."""

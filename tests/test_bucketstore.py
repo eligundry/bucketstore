@@ -140,17 +140,17 @@ def test_bucket_keys_can_be_iterated_upon(bucket):
 
 def test_key_can_be_written_to_like_file(key):
     lines = (
-        'Line 1',
-        'Line 2',
-        'Line 3',
+        b'Line 1',
+        b'Line 2',
+        b'Line 3',
     )
 
     with key as file_handler:
         for line in lines:
-            file_handler.write(line.encode('utf-8'))
+            file_handler.write(line)
 
     assert key.get()
-    assert key.get() == bytearray(''.join(lines).encode('utf-8'))
+    assert key.get() == b''.join(lines)
 
 
 def test_key_can_be_json_dumped_to(key):
