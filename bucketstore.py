@@ -1,5 +1,6 @@
 import codecs
 import io
+import tempfile
 import os
 
 import boto3
@@ -138,7 +139,7 @@ class S3Key(object):
     def read(self, size=None):
         """Reads the value of the key."""
         if not self._buffer:
-            self._buffer = io.BytesIO()
+            self._buffer = tempfile.TemporaryFile()
             self._boto_object.download_fileobj(self._buffer)
             self.seek(0)
 
@@ -147,7 +148,7 @@ class S3Key(object):
     def readline(self):
         """Reads a line from the key."""
         if not self._buffer:
-            self._buffer = io.BytesIO()
+            self._buffer = tempfile.TemporaryFile()
             self._boto_object.download_fileobj(self._buffer)
             self.seek(0)
 
@@ -155,14 +156,14 @@ class S3Key(object):
 
     def seek(self, pos, whence=0):
         if not self._buffer:
-            self._buffer = io.BytesIO()
+            self._buffer = tempfile.TemporaryFile()
             self._boto_object.download_fileobj(self._buffer)
 
         return self._buffer.seek(pos, whence)
 
     def tell(self):
         if not self._buffer:
-            self._buffer = io.BytesIO()
+            self._buffer = tempfile.TemporaryFile()
             self._boto_object.download_fileobj(self._buffer)
 
         return self._buffer.tell()
